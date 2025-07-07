@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Nuance Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+        #input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        #word-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        #analyze-btn {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        #analyze-btn:hover {
+            background-color: #2980b9;
+        }
+        #loader {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s ease infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #results-area { margin-top: 20px; }
+        .cluster {
+            background-color: #f9f9f9;
+            border: 1px solid #e9e9e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .cluster-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2980b9;
+            margin: 0 0 15px 0;
+        }
+        .cluster-title .rep-word { color: #c0392b; }
+        .example-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .example-list li {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-style: italic;
+            color: #555;
+            border-left: 3px solid #3498db;
+        }
+        #plot-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        #plot-container img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <h1>BERT 기반 단어 뉘앙스 분석기</h1>
+        <div id="input-area">
+            <input type="text" id="word-input" placeholder="분석할 영어 단어 입력 (e.g., bank, spring)">
+            <button id="analyze-btn">분석</button>
+        </div>
+        <div id="loader">
+            <div class="spinner"></div>
+            <p>서버에서 분석 중입니다... (최대 1분 소요)</p>
+        </div>
+        <div id="results-area"></div>
+    </div>
+
+    <script>
+        document.getElementById('analyze-btn').addEventListener('click', () => {
+            const word = document.getElementById('word-input').value.trim();
+            if (!word) {
+                alert('단어를 입력해주세요.');
+                return;
+            }
+
+            const loader = document.getElementById('loader');
+            const resultsArea = document.getElementById('results-area');
+            
+            loader.style.display = 'block';
+            resultsArea.innerHTML = '';
+
+            // --- 실제 백엔드 연동 시 이 부분을 사용 ---
+            // fetch('http://127.0.0.1:5000/analyze', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ word: word })
+            // })
+            // .then(response => response.json())
+            // .then(data => {
+            //     loader.style.display = 'none';
+            //     displayResults(data);
+            // })
+            // .catch(error => {
+            //     loader.style.display = 'none';
+            //     resultsArea.innerHTML = `<p style="color:red; text-align:center;">오류가 발생했습니다: ${error}</p>`;
+            // });
+
+            // --- 데모용: 가짜 데이터로 UI 테스트 ---
+            setTimeout(() => {
+                const fakeData = {
+                    "clusters": {
+                        "0": {"label": "money", "count": 150, "examples": ["The bank holds a lot of money.", "He made a deposit at the bank."]},
+                        "1": {"label": "river", "count": 100, "examples": ["They sat on the river bank.", "The bank was steep and muddy."]}
+                    },
+                    "plot": "https://placehold.co/600x400/2980b9/FFF?text=3D+Plot+Image"
+                };
+                loader.style.display = 'none';
+                displayResults(fakeData);
+            }, 3000); // 3초 딜레이 시뮬레이션
+        });
+
+        function displayResults(data) {
+            const resultsArea = document.getElementById('results-area');
+            if (data.error) {
+                resultsArea.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
+                return;
+            }
+
+            let html = '';
+            for (const cid in data.clusters) {
+                const cluster = data.clusters[cid];
+                html += `
+                    <div class="cluster">
+                        <h2 class="cluster-title">
+                            뉘앙스 #${parseInt(cid) + 1} &mdash; 대표 단어: <span class="rep-word">${cluster.label}</span>
+                            <span style="font-size: 14px; color: #777; font-weight: normal;">(${cluster.count}개 문장에서 발견)</span>
+                        </h2>
+                        <ul class="example-list">
+                            ${cluster.examples.map(ex => `<li>"${ex}"</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            if (data.plot) {
+                html += `
+                    <div id="plot-container">
+                        <h3>문맥별 의미 분포 3D 시각화</h3>
+                        <img src="${data.plot}" alt="3D Visualization Plot">
+                    </div>
+                `;
+            }
+            resultsArea.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
