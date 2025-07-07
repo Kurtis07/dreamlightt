@@ -1,4 +1,4 @@
-﻿affine==2.4.0
+affine==2.4.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.13
 aiosignal==1.4.0
